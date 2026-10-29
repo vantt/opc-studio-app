@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>OPC Notes</title>
+    <style>
+      body { font-family: system-ui, sans-serif; max-width: 40rem; margin: 2rem auto; padding: 0 1rem; }
+      form { display: grid; gap: 0.5rem; margin-bottom: 1.5rem; }
+      li { margin-bottom: 0.75rem; }
+      .error { color: #b00020; }
+    </style>
+  </head>
+  <body>
+    <h1>OPC Notes</h1>
+    <form id="note-form">
+      <label>Tiêu đề <input name="title" required maxlength="200" /></label>
+      <label>Nội dung <textarea name="body" rows="3" maxlength="5000"></textarea></label>
+      <button type="submit">Thêm ghi chú</button>
+      <p class="error" id="error" role="alert"></p>
+    </form>
+    <ul id="notes"></ul>
+    <script type="module">
+      const list = document.querySelector("#notes");
+      const form = document.querySelector("#note-form");
+      const error = document.querySelector("#error");
+
+      async function refresh() {
+        const notes = await (await fetch("/api/notes")).json();
+        list.replaceChildren(
+          ...notes.map((note) => {
+            const item = document.createElement("li");
+            const title = document.createElement("strong");
+            title.textContent = note.title;
+            const remove = document.createElement("button");
+            remove.textContent = "Xoá";
+            remove.addEventListener("click", async () => {
+              await fetch(`/api/notes/${note.id}`, { method: "DELETE" });
+              refresh();
+            });
+            item.append(title, " ", note.body, " ", remove);
+            return item;
+          }),
+        );
+      }
+
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const data = Object.fromEntries(new FormData(form));
+        const res = await fetch("/api/notes", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(data),
+        });
+        error.textContent = res.ok ? "" : (await res.json()).error;
+        if (res.ok) {
+          form.reset();
+          refresh();
+        }
+      });
+
+      refresh();
+    </script>
+  </body>
+</html>
