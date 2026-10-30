@@ -73,3 +73,56 @@ test("GET /api/notes?q= filters notes and ignores an empty q", async () => {
     own.close();
   }
 });
+
+test("PATCH /api/notes/:id edits a note (AC 1-7)", async () => {
+  const own = createApp(new NoteStore());
+  await new Promise<void>((resolve) => own.listen(0, "127.0.0.1", resolve));
+  const url = `http://127.0.0.1:${(own.address() as AddressInfo).port}/api/notes`;
+  const send = (method: string, path: string, body: string) =>
+    fetch(`${url}${path}`, { method, headers: { "content-type": "application/json" }, body });
+  try {
+    const created = await (await send("POST", "", JSON.stringify({ title: "a", body: "b" }))).json();
+    assert.equal(created.updatedAt, null);
+
+    const titleRes = await send("PATCH", "/1", JSON.stringify({ title: "  new " }));
+    assert.equal(titleRes.status, 200);
+    const edited = await titleRes.json();
+    assert.deepEqual([edited.title, edited.body, edited.id], ["new", "b", 1]);
+    assert.equal(edited.createdAt, created.createdAt);
+    assert.match(edited.updatedAt, /^\d{4}-\d{2}-\d{2}T.*Z$/);
+
+    const both = await (await send("PATCH", "/1", JSON.stringify({ title: "t", body: "" }))).json();
+    assert.deepEqual([both.title, both.body], ["t", ""]);
+    const bodyOnly = await (await send("PATCH", "/1", JSON.stringify({ body: "z" }))).json();
+    assert.deepEqual([bodyOnly.title, bodyOnly.body], ["t", "z"]);
+
+    const bad = [
+      "{}",
+      "[]",
+      "null",
+      JSON.stringify({ title: " " }),
+      JSON.stringify({ title: 1 }),
+      JSON.stringify({ body: 1 }),
+      JSON.stringify({ title: "a".repeat(201) }),
+      JSON.stringify({ body: "a".repeat(5001) }),
+      "{",
+    ];
+    for (const body of bad) {
+      const res = await send("PATCH", "/1", body);
+      assert.equal(res.status, 400, body);
+      assert.equal(typeof (await res.json()).error, "string");
+    }
+    const [after] = await (await fetch(url)).json();
+    assert.deepEqual(after, bodyOnly);
+
+    const missing = await send("PATCH", "/99", JSON.stringify({ title: "x" }));
+    assert.equal(missing.status, 404);
+    assert.deepEqual(await missing.json(), { error: "note not found" });
+    assert.equal((await send("PATCH", "/99", "{}")).status, 400);
+    await fetch(`${url}/1`, { method: "DELETE" });
+    assert.equal((await send("PATCH", "/1", JSON.stringify({ title: "x" }))).status, 404);
+    assert.equal((await send("PUT", "/1", "{}")).status, 404);
+  } finally {
+    own.close();
+  }
+});
