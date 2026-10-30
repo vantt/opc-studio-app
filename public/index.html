@@ -25,6 +25,44 @@
       const form = document.querySelector("#note-form");
       const error = document.querySelector("#error");
 
+      function editForm(note) {
+        const editor = document.createElement("form");
+        const title = document.createElement("input");
+        title.value = note.title;
+        title.required = true;
+        title.maxLength = 200;
+        const body = document.createElement("textarea");
+        body.value = note.body;
+        body.rows = 3;
+        body.maxLength = 5000;
+        const save = document.createElement("button");
+        save.type = "submit";
+        save.textContent = "Lưu";
+        const cancel = document.createElement("button");
+        cancel.type = "button";
+        cancel.textContent = "Huỷ";
+        cancel.addEventListener("click", refresh);
+        const problem = document.createElement("p");
+        problem.className = "error";
+        problem.setAttribute("role", "alert");
+        editor.addEventListener("submit", async (event) => {
+          event.preventDefault();
+          try {
+            const res = await fetch(`/api/notes/${note.id}`, {
+              method: "PATCH",
+              headers: { "content-type": "application/json" },
+              body: JSON.stringify({ title: title.value, body: body.value }),
+            });
+            if (res.ok) return refresh();
+            problem.textContent = (await res.json()).error;
+          } catch {
+            problem.textContent = "Không lưu được, thử lại sau";
+          }
+        });
+        editor.append(title, body, save, cancel, problem);
+        return editor;
+      }
+
       async function refresh() {
         const notes = await (await fetch("/api/notes")).json();
         list.replaceChildren(
@@ -38,7 +76,15 @@
               await fetch(`/api/notes/${note.id}`, { method: "DELETE" });
               refresh();
             });
-            item.append(title, " ", note.body, " ", remove);
+            const edit = document.createElement("button");
+            edit.textContent = "Sửa";
+            edit.addEventListener("click", () => item.replaceChildren(editForm(note)));
+            item.append(title, " ", note.body, " ", edit, " ", remove);
+            if (note.updatedAt) {
+              const stamp = document.createElement("small");
+              stamp.textContent = ` Sửa lần cuối: ${new Date(note.updatedAt).toLocaleString("vi-VN")}`;
+              item.append(stamp);
+            }
             return item;
           }),
         );

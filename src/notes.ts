@@ -3,6 +3,7 @@ export interface Note {
   title: string;
   body: string;
   createdAt: string;
+  updatedAt: string | null;
 }
 
 export const TITLE_MAX = 200;
@@ -23,6 +24,30 @@ export function parseNoteInput(input: unknown): { title: string; body: string } 
   if (body.length > BODY_MAX)
     throw new ValidationError(`body is longer than ${BODY_MAX} characters`);
   return { title: title.trim(), body };
+}
+
+/** Checks a partial edit: at least one of title or body, with the same limits as creation. */
+export function parseNotePatch(input: unknown): { title?: string; body?: string } {
+  if (typeof input !== "object" || input === null || Array.isArray(input))
+    throw new ValidationError("body must be a JSON object");
+  const { title, body } = input as Record<string, unknown>;
+  if (title === undefined && body === undefined)
+    throw new ValidationError("title or body is required");
+  const patch: { title?: string; body?: string } = {};
+  if (title !== undefined) {
+    if (typeof title !== "string" || title.trim() === "")
+      throw new ValidationError("title must be a non-empty string");
+    if (title.trim().length > TITLE_MAX)
+      throw new ValidationError(`title is longer than ${TITLE_MAX} characters`);
+    patch.title = title.trim();
+  }
+  if (body !== undefined) {
+    if (typeof body !== "string") throw new ValidationError("body must be a string");
+    if (body.length > BODY_MAX)
+      throw new ValidationError(`body is longer than ${BODY_MAX} characters`);
+    patch.body = body;
+  }
+  return patch;
 }
 
 /** In-memory note store; ids are never reused. */
@@ -47,8 +72,23 @@ export class NoteStore {
 
   add(input: unknown): Note {
     const { title, body } = parseNoteInput(input);
-    const note = { id: this.#nextId++, title, body, createdAt: this.#now().toISOString() };
+    const note: Note = {
+      id: this.#nextId++,
+      title,
+      body,
+      createdAt: this.#now().toISOString(),
+      updatedAt: null,
+    };
     this.#notes.set(note.id, note);
+    return note;
+  }
+
+  /** Validates before looking the note up, so a bad body is a 400 even for an unknown id. */
+  update(id: number, input: unknown): Note | undefined {
+    const patch = parseNotePatch(input);
+    const note = this.#notes.get(id);
+    if (!note) return undefined;
+    Object.assign(note, patch, { updatedAt: this.#now().toISOString() });
     return note;
   }
 
