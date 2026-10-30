@@ -46,3 +46,30 @@ test("rejects invalid JSON, invalid notes, oversized bodies and unknown routes",
   assert.equal((await fetch(`${base}/nope`)).status, 404);
   assert.equal((await fetch(`${base}/api/notes`, { method: "PUT" })).status, 405);
 });
+
+test("GET /api/notes?q= filters notes and ignores an empty q", async () => {
+  const own = createApp(new NoteStore());
+  await new Promise<void>((resolve) => own.listen(0, "127.0.0.1", resolve));
+  const url = `http://127.0.0.1:${(own.address() as AddressInfo).port}/api/notes`;
+  const add = (title: string, body: string) =>
+    fetch(url, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ title, body }),
+    });
+  try {
+    await add("Groceries", "Milk and eggs");
+    await add("Work", "ship it");
+    const ids = async (qs: string) =>
+      (await (await fetch(`${url}${qs}`)).json()).map((n: { id: number }) => n.id);
+    assert.deepEqual(await ids("?q=GROCER"), [1]);
+    assert.deepEqual(await ids("?q=ship"), [2]);
+    assert.deepEqual(await ids("?q=zzz"), []);
+    assert.deepEqual(await ids(""), [1, 2]);
+    assert.deepEqual(await ids("?q="), [1, 2]);
+    assert.deepEqual(await ids("?q=%20%20"), [1, 2]);
+    assert.deepEqual(await ids("?q=%25"), []);
+  } finally {
+    own.close();
+  }
+});

@@ -35,8 +35,14 @@ export class NoteStore {
     this.#now = now;
   }
 
-  list(): Note[] {
-    return [...this.#notes.values()];
+  /** Lists notes by id; a non-blank query keeps notes whose title or body contains it, ignoring case. */
+  list(query?: string): Note[] {
+    const all = [...this.#notes.values()];
+    const needle = query?.trim().toLowerCase();
+    if (!needle) return all;
+    return all.filter(
+      (n) => n.title.toLowerCase().includes(needle) || n.body.toLowerCase().includes(needle),
+    );
   }
 
   add(input: unknown): Note {
