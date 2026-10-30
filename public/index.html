@@ -47,13 +47,17 @@
         problem.setAttribute("role", "alert");
         editor.addEventListener("submit", async (event) => {
           event.preventDefault();
-          const res = await fetch(`/api/notes/${note.id}`, {
-            method: "PATCH",
-            headers: { "content-type": "application/json" },
-            body: JSON.stringify({ title: title.value, body: body.value }),
-          });
-          if (res.ok) return refresh();
-          problem.textContent = (await res.json()).error;
+          try {
+            const res = await fetch(`/api/notes/${note.id}`, {
+              method: "PATCH",
+              headers: { "content-type": "application/json" },
+              body: JSON.stringify({ title: title.value, body: body.value }),
+            });
+            if (res.ok) return refresh();
+            problem.textContent = (await res.json()).error;
+          } catch {
+            problem.textContent = "Không lưu được, thử lại sau";
+          }
         });
         editor.append(title, body, save, cancel, problem);
         return editor;

@@ -50,8 +50,10 @@ async function route(store: NoteStore, req: IncomingMessage, res: ServerResponse
     throw new HttpError(405, "method not allowed");
   }
   const match = /^\/api\/notes\/(\d+)$/.exec(pathname);
-  if (match && method === "PATCH") {
-    const note = store.update(Number(match[1]), await readJson(req));
+  // A non-numeric id can never exist, so PATCH treats it as a missing note, not an unknown route.
+  const anyId = /^\/api\/notes\/[^/]+$/.test(pathname);
+  if (anyId && method === "PATCH") {
+    const note = store.update(match ? Number(match[1]) : Number.NaN, await readJson(req));
     if (!note) throw new HttpError(404, "note not found");
     return sendJson(res, 200, note);
   }
