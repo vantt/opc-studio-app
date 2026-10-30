@@ -26,9 +26,9 @@ See [ARCHITECTURE.md](ARCHITECTURE.md). Decisions live in [docs/adr/](docs/adr/)
 
 - One branch per issue: `multica/STU-<n>-<slug>`. One PR per issue, title `STU-<n>: <summary>`, using the PR template.
 - Only the developer pushes to the issue branch. Reviewers and QA check out the exact SHA they were given and never push.
-- Never push to `main`, force-push someone else's branch, rewrite shared history, or edit `.github/workflows/` (the agent token cannot, on purpose).
+- Never push to `main` (a pre-push hook refuses it; never bypass it with `--no-verify`), force-push someone else's branch, rewrite shared history, or edit `.github/workflows/` (the agent token cannot, on purpose).
 - Never delete, skip or weaken a test, or relax a check, to make it pass. If a test is wrong, say so in the PR and let the owner decide.
-- `main` is protected: CI green and the owner's approval are required to merge.
+- Only the owner merges to `main`, after CI is green and they approve the PR.
 
 ## Code
 
