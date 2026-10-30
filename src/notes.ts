@@ -50,14 +50,46 @@ export function parseNotePatch(input: unknown): { title?: string; body?: string 
   return patch;
 }
 
-/** In-memory note store; ids are never reused. */
+export interface NoteSnapshot {
+  version: 1;
+  nextId: number;
+  notes: Note[];
+}
+
+export interface NotePersistence {
+  initial: NoteSnapshot;
+  /** Must durably store the snapshot or throw; called before memory changes. */
+  save(snapshot: NoteSnapshot): void;
+}
+
+/** Note store; ids are never reused. Without persistence it lives in memory only. */
 export class NoteStore {
   #notes = new Map<number, Note>();
   #nextId = 1;
   #now: () => Date;
+  #save: ((snapshot: NoteSnapshot) => void) | undefined;
 
-  constructor(now: () => Date = () => new Date()) {
+  constructor(now: () => Date = () => new Date(), persistence?: NotePersistence) {
     this.#now = now;
+    if (persistence) {
+      for (const n of persistence.initial.notes) this.#notes.set(n.id, { ...n });
+      this.#nextId = persistence.initial.nextId;
+      this.#save = persistence.save;
+    }
+  }
+
+  /** A deep copy of the current state, ids ascending. */
+  snapshot(): NoteSnapshot {
+    return this.#snapshotWith(this.#nextId, [...this.#notes.values()]);
+  }
+
+  #snapshotWith(nextId: number, notes: Note[]): NoteSnapshot {
+    return { version: 1, nextId, notes: notes.map((n) => ({ ...n })) };
+  }
+
+  /** Saves the next state first, so a failed write leaves memory matching the disk. */
+  #persist(nextId: number, notes: Note[]): void {
+    this.#save?.(this.#snapshotWith(nextId, notes));
   }
 
   /** Lists notes by id; a non-blank query keeps notes whose title or body contains it, ignoring case. */
@@ -73,13 +105,15 @@ export class NoteStore {
   add(input: unknown): Note {
     const { title, body } = parseNoteInput(input);
     const note: Note = {
-      id: this.#nextId++,
+      id: this.#nextId,
       title,
       body,
       createdAt: this.#now().toISOString(),
       updatedAt: null,
     };
+    this.#persist(this.#nextId + 1, [...this.#notes.values(), note]);
     this.#notes.set(note.id, note);
+    this.#nextId++;
     return note;
   }
 
@@ -88,11 +122,21 @@ export class NoteStore {
     const patch = parseNotePatch(input);
     const note = this.#notes.get(id);
     if (!note) return undefined;
-    Object.assign(note, patch, { updatedAt: this.#now().toISOString() });
-    return note;
+    const updated: Note = { ...note, ...patch, updatedAt: this.#now().toISOString() };
+    this.#persist(
+      this.#nextId,
+      [...this.#notes.values()].map((n) => (n.id === id ? updated : n)),
+    );
+    this.#notes.set(id, updated);
+    return updated;
   }
 
   remove(id: number): boolean {
+    if (!this.#notes.has(id)) return false;
+    this.#persist(
+      this.#nextId,
+      [...this.#notes.values()].filter((n) => n.id !== id),
+    );
     return this.#notes.delete(id);
   }
 }

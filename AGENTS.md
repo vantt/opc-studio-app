@@ -7,7 +7,7 @@ Rules for every agent (and person) working in this repo. Read this before touchi
 | What | Command |
 |---|---|
 | Install | `npm ci` |
-| Run | `npm start` (http://127.0.0.1:3000, `PORT`/`HOST` override) |
+| Run | `npm start` (http://127.0.0.1:3000, `PORT`/`HOST`/`DATA_FILE` override) |
 | **Check everything** | `make check` — lint, typecheck, tests, dependency audit, secret scan. CI runs exactly this. |
 | One part | `make lint`, `make typecheck`, `make test`, `make audit`, `make secrets` |
 | Format | `npm run format` |
