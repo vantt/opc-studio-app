@@ -50,6 +50,11 @@ async function route(store: NoteStore, req: IncomingMessage, res: ServerResponse
     throw new HttpError(405, "method not allowed");
   }
   const match = /^\/api\/notes\/(\d+)$/.exec(pathname);
+  if (match && method === "PATCH") {
+    const note = store.update(Number(match[1]), await readJson(req));
+    if (!note) throw new HttpError(404, "note not found");
+    return sendJson(res, 200, note);
+  }
   if (match && method === "DELETE") {
     if (!store.remove(Number(match[1]))) throw new HttpError(404, "note not found");
     res.writeHead(204).end();

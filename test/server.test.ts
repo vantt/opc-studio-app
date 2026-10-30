@@ -81,7 +81,9 @@ test("PATCH /api/notes/:id edits a note (AC 1-7)", async () => {
   const send = (method: string, path: string, body: string) =>
     fetch(`${url}${path}`, { method, headers: { "content-type": "application/json" }, body });
   try {
-    const created = await (await send("POST", "", JSON.stringify({ title: "a", body: "b" }))).json();
+    const created = await (
+      await send("POST", "", JSON.stringify({ title: "a", body: "b" }))
+    ).json();
     assert.equal(created.updatedAt, null);
 
     const titleRes = await send("PATCH", "/1", JSON.stringify({ title: "  new " }));
