@@ -128,3 +128,15 @@ test("PATCH /api/notes/:id edits a note (AC 1-7)", async () => {
     own.close();
   }
 });
+
+test("PATCH with a non-numeric id is a 404 note not found (AC 5)", async () => {
+  for (const id of ["abc", "-1", "1.5", "0x1"]) {
+    const res = await fetch(`${base}/api/notes/${id}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ title: "x" }),
+    });
+    assert.equal(res.status, 404, id);
+    assert.deepEqual(await res.json(), { error: "note not found" }, id);
+  }
+});
