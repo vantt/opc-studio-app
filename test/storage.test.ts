@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 import { type NotePersistence, NoteStore } from "../src/notes.ts";
-import { loadSnapshot, saveSnapshot, StorageError } from "../src/storage.ts";
+import { loadSnapshot, StorageError, saveSnapshot } from "../src/storage.ts";
 
 const tempFile = () => join(mkdtempSync(join(tmpdir(), "notes-")), "sub", "notes.json");
 const at = () => new Date("2026-10-30T00:00:00Z");
@@ -183,7 +183,9 @@ test("snapshot is a deep copy", () => {
   store.add({ title: "a" });
   const snap = store.snapshot();
   assert.equal(snap.nextId, 2);
-  snap.notes[0]!.title = "mutated";
+  const first = snap.notes[0];
+  assert.ok(first);
+  first.title = "mutated";
   assert.equal(store.list()[0]?.title, "a");
 });
 
