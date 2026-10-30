@@ -35,7 +35,7 @@ async function readJson(req: IncomingMessage): Promise<unknown> {
 }
 
 async function route(store: NoteStore, req: IncomingMessage, res: ServerResponse): Promise<void> {
-  const { pathname } = new URL(req.url ?? "/", "http://localhost");
+  const { pathname, searchParams } = new URL(req.url ?? "/", "http://localhost");
   const method = req.method ?? "GET";
 
   if (method === "GET" && pathname === "/") {
@@ -45,7 +45,7 @@ async function route(store: NoteStore, req: IncomingMessage, res: ServerResponse
   }
   if (method === "GET" && pathname === "/healthz") return sendJson(res, 200, { status: "ok" });
   if (pathname === "/api/notes") {
-    if (method === "GET") return sendJson(res, 200, store.list());
+    if (method === "GET") return sendJson(res, 200, store.list(searchParams.get("q") ?? undefined));
     if (method === "POST") return sendJson(res, 201, store.add(await readJson(req)));
     throw new HttpError(405, "method not allowed");
   }

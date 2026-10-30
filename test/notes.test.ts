@@ -32,3 +32,44 @@ test("parseNoteInput rejects bad input", () => {
     parseNoteInput({ title: "a".repeat(TITLE_MAX), body: "a".repeat(BODY_MAX) }),
   );
 });
+
+test("list filters by keyword in title or body, ignoring case and surrounding spaces", () => {
+  const store = new NoteStore();
+  store.add({ title: "Shopping", body: "milk" });
+  store.add({ title: "Work", body: "Call the SHOP" });
+  store.add({ title: "Other", body: "nothing" });
+  assert.deepEqual(
+    store.list("shop").map((n) => n.id),
+    [1, 2],
+  );
+  assert.deepEqual(
+    store.list("  MILK ").map((n) => n.id),
+    [1],
+  );
+  assert.deepEqual(store.list("absent"), []);
+});
+
+test("list without a usable query returns everything", () => {
+  const store = new NoteStore();
+  store.add({ title: "a" });
+  store.add({ title: "b" });
+  for (const q of [undefined, "", "   "]) assert.equal(store.list(q).length, 2);
+});
+
+test("list treats special characters as plain text", () => {
+  const store = new NoteStore();
+  store.add({ title: "100% sure", body: "a.b" });
+  store.add({ title: "axb" });
+  assert.deepEqual(
+    store.list("a.b").map((n) => n.id),
+    [1],
+  );
+  assert.deepEqual(
+    store.list(".*").map((n) => n.id),
+    [],
+  );
+  assert.deepEqual(
+    store.list("%").map((n) => n.id),
+    [1],
+  );
+});
