@@ -73,7 +73,13 @@
             const remove = document.createElement("button");
             remove.textContent = "Xoá";
             remove.addEventListener("click", async () => {
-              await fetch(`/api/notes/${note.id}`, { method: "DELETE" });
+              if (!confirm("Xoá ghi chú này?")) return;
+              try {
+                const res = await fetch(`/api/notes/${note.id}`, { method: "DELETE" });
+                if (!(res.ok || res.status === 404)) alert("Không xoá được ghi chú, thử lại sau");
+              } catch {
+                alert("Không xoá được ghi chú, thử lại sau");
+              }
               refresh();
             });
             const edit = document.createElement("button");

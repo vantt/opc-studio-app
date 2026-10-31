@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
-import type { AddressInfo } from "node:net";
-import { after, before, test } from "node:test";
 import { mkdtempSync, readFileSync } from "node:fs";
+import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { after, before, test } from "node:test";
 import { NoteStore } from "../src/notes.ts";
 import { createApp } from "../src/server.ts";
 import { loadSnapshot, saveSnapshot } from "../src/storage.ts";
@@ -181,9 +181,15 @@ test("a note deleted over HTTP stays gone after the server restarts (AC 1-2)", a
 
 test("the Delete button asks for confirmation and reports failures (AC 3-4)", () => {
   const page = readFileSync(new URL("../public/index.html", import.meta.url), "utf8");
-  const handler = page.slice(page.indexOf('method: "DELETE"') - 200, page.indexOf('method: "DELETE"') + 400);
+  const handler = page.slice(
+    page.indexOf('method: "DELETE"') - 200,
+    page.indexOf('method: "DELETE"') + 400,
+  );
   assert.match(handler, /if \(!confirm\(/, "must confirm before calling the API");
-  assert.ok(handler.indexOf("confirm(") < handler.indexOf('method: "DELETE"'), "confirm comes first");
+  assert.ok(
+    handler.indexOf("confirm(") < handler.indexOf('method: "DELETE"'),
+    "confirm comes first",
+  );
   assert.match(handler, /res\.ok \|\| res\.status === 404/, "only 204/404 count as success");
   assert.match(handler, /alert\(/, "other failures are shown");
 });
