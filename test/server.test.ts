@@ -1,8 +1,12 @@
 import assert from "node:assert/strict";
 import type { AddressInfo } from "node:net";
 import { after, before, test } from "node:test";
+import { mkdtempSync, readFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { NoteStore } from "../src/notes.ts";
 import { createApp } from "../src/server.ts";
+import { loadSnapshot, saveSnapshot } from "../src/storage.ts";
 
 const app = createApp(new NoteStore());
 let base = "";
@@ -139,4 +143,47 @@ test("PATCH with a non-numeric id is a 404 note not found (AC 5)", async () => {
     assert.equal(res.status, 404, id);
     assert.deepEqual(await res.json(), { error: "note not found" }, id);
   }
+});
+
+test("a note deleted over HTTP stays gone after the server restarts (AC 1-2)", async () => {
+  const file = join(mkdtempSync(join(tmpdir(), "notes-")), "notes.json");
+  const start = async () => {
+    const store = new NoteStore(undefined, {
+      initial: loadSnapshot(file),
+      save: (s) => saveSnapshot(file, s),
+    });
+    const server = createApp(store);
+    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+    return { server, url: `http://127.0.0.1:${(server.address() as AddressInfo).port}/api/notes` };
+  };
+  const first = await start();
+  try {
+    const add = (title: string) =>
+      fetch(first.url, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ title }),
+      });
+    await add("keep");
+    const gone = await (await add("drop")).json();
+    assert.equal((await fetch(`${first.url}/${gone.id}`, { method: "DELETE" })).status, 204);
+  } finally {
+    first.server.close();
+  }
+  const second = await start();
+  try {
+    const titles = (await (await fetch(second.url)).json()).map((n: { title: string }) => n.title);
+    assert.deepEqual(titles, ["keep"]);
+  } finally {
+    second.server.close();
+  }
+});
+
+test("the Delete button asks for confirmation and reports failures (AC 3-4)", () => {
+  const page = readFileSync(new URL("../public/index.html", import.meta.url), "utf8");
+  const handler = page.slice(page.indexOf('method: "DELETE"') - 200, page.indexOf('method: "DELETE"') + 400);
+  assert.match(handler, /if \(!confirm\(/, "must confirm before calling the API");
+  assert.ok(handler.indexOf("confirm(") < handler.indexOf('method: "DELETE"'), "confirm comes first");
+  assert.match(handler, /res\.ok \|\| res\.status === 404/, "only 204/404 count as success");
+  assert.match(handler, /alert\(/, "other failures are shown");
 });
