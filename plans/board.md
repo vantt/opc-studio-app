@@ -37,7 +37,6 @@ At most 3 epics, in the order to open them.
 | # | Epic | Plan | Priority | First step | Who | Condition |
 |---|---|---|---|---|---|---|
 | 1 | E2 Paid plan | [paid-plan](261109-paid-plan/plan.md) | P2 | B.1 owner picks the price; B.2 checkout endpoint | B.1 human; B.2 agent | B.2 after B.1 |
-| 2 | E3 Sign-in | [sign-in](261109-sign-in/plan.md) | P2 | S.1 email one-time-code sign-in | Agent | — |
 
 ## Needs the human
 
