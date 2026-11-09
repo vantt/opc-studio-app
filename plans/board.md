@@ -47,6 +47,7 @@ The only section that holds steps waiting on the human.
 |---|---|---|---|
 | E2 | B.1 Price | [paid-plan](261109-paid-plan/plan.md) | Pick the monthly price and write it into the plan |
 | E1 | P.1 Pin a note | [pinned-notes](261109-pinned-notes/plan.md) | Duyệt STU-17 (stored data shape change): kéo sang todo |
+| E3 | S.1 Email one-time-code sign-in | [sign-in](261109-sign-in/plan.md) | Duyệt  (auth, sessions, L): kéo sang todo |
 
 ## Backlog
 
