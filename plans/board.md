@@ -8,9 +8,9 @@ This board is high-level: one row = one epic = one plan. Step status and evidenc
 
 ## Overview
 
-2 epics:
+3 epics:
 - In progress: E1.
-- Backlog with a plan: E2.
+- Backlog with a plan: E2, E3.
 
 ## In progress
 
@@ -37,6 +37,7 @@ At most 3 epics, in the order to open them.
 | # | Epic | Plan | Priority | First step | Who | Condition |
 |---|---|---|---|---|---|---|
 | 1 | E2 Paid plan | [paid-plan](261109-paid-plan/plan.md) | P2 | B.1 owner picks the price; B.2 checkout endpoint | B.1 human; B.2 agent | B.2 after B.1 |
+| 2 | E3 Sign-in | [sign-in](261109-sign-in/plan.md) | P2 | S.1 email one-time-code sign-in | Agent | — |
 
 ## Needs the human
 
@@ -54,6 +55,7 @@ All epics, from idea to done. One plan per epic.
 |---|---|---|---|---|---|---|
 | E1 | Pinned notes: pin a note, pinned notes listed first | [pinned-notes](261109-pinned-notes/plan.md) | 🔄 Doing | P1 | — | |
 | E2 | Paid plan: a monthly subscription with card checkout | [paid-plan](261109-paid-plan/plan.md) | 📥 Backlog | P2 | — | Touches payment |
+| E3 | Sign-in: email one-time code, notes per account | [sign-in](261109-sign-in/plan.md) | 📥 Backlog | P2 | — | Touches auth |
 
 Status: 📥 Backlog, ⬜ Todo, 🔄 Doing, ⏸ Waiting, ✅ Done, ❌ Dropped.
 Priority: P1 needed first, P2 should do, P3 later.
