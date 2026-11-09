@@ -140,3 +140,48 @@ test("PATCH with a non-numeric id is a 404 note not found (AC 5)", async () => {
     assert.deepEqual(await res.json(), { error: "note not found" }, id);
   }
 });
+
+test("PATCH pinned over HTTP (AC 1-6, 10)", async () => {
+  const own = createApp(new NoteStore());
+  await new Promise<void>((resolve) => own.listen(0, "127.0.0.1", resolve));
+  const url = `http://127.0.0.1:${(own.address() as AddressInfo).port}/api/notes`;
+  const send = (method: string, path: string, body: string) =>
+    fetch(`${url}${path}`, { method, headers: { "content-type": "application/json" }, body });
+  try {
+    for (const t of ["a", "b"]) await send("POST", "", JSON.stringify({ title: t }));
+    assert.equal(
+      (await (await send("POST", "", JSON.stringify({ title: "c" }))).json()).pinned,
+      false,
+    );
+    assert.equal((await (await fetch(`${url}?q=a`)).json())[0].pinned, false);
+
+    const pin = await send("PATCH", "/1", JSON.stringify({ pinned: true }));
+    assert.equal(pin.status, 200);
+    const pinned = await pin.json();
+    assert.equal(pinned.pinned, true);
+    assert.equal(pinned.updatedAt, null);
+    const list = await (await fetch(url)).json();
+    assert.deepEqual(
+      list.map((n: { id: number; pinned: boolean }) => [n.id, n.pinned]),
+      [
+        [1, true],
+        [2, false],
+        [3, false],
+      ],
+    );
+    const unpin = await send("PATCH", "/1", JSON.stringify({ pinned: false }));
+    assert.equal((await unpin.json()).pinned, false);
+
+    await send("PATCH", "/2", JSON.stringify({ pinned: true }));
+    for (const pinnedValue of ["yes", 1, null]) {
+      const res = await send("PATCH", "/2", JSON.stringify({ pinned: pinnedValue }));
+      assert.equal(res.status, 400);
+      assert.equal(typeof (await res.json()).error, "string");
+    }
+    assert.equal((await send("PATCH", "/2", "{}")).status, 400);
+    assert.equal((await (await fetch(url)).json())[1].pinned, true);
+    assert.equal((await send("PATCH", "/99", JSON.stringify({ pinned: true }))).status, 404);
+  } finally {
+    own.close();
+  }
+});
