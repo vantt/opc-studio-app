@@ -4,6 +4,7 @@ export interface Note {
   body: string;
   createdAt: string;
   updatedAt: string | null;
+  pinned: boolean;
 }
 
 export const TITLE_MAX = 200;
@@ -26,14 +27,18 @@ export function parseNoteInput(input: unknown): { title: string; body: string } 
   return { title: title.trim(), body };
 }
 
-/** Checks a partial edit: at least one of title or body, with the same limits as creation. */
-export function parseNotePatch(input: unknown): { title?: string; body?: string } {
+/** Checks a partial edit: at least one of title, body or pinned, with the same limits as creation. */
+export function parseNotePatch(input: unknown): {
+  title?: string;
+  body?: string;
+  pinned?: boolean;
+} {
   if (typeof input !== "object" || input === null || Array.isArray(input))
     throw new ValidationError("body must be a JSON object");
-  const { title, body } = input as Record<string, unknown>;
-  if (title === undefined && body === undefined)
-    throw new ValidationError("title or body is required");
-  const patch: { title?: string; body?: string } = {};
+  const { title, body, pinned } = input as Record<string, unknown>;
+  if (title === undefined && body === undefined && pinned === undefined)
+    throw new ValidationError("title, body or pinned is required");
+  const patch: { title?: string; body?: string; pinned?: boolean } = {};
   if (title !== undefined) {
     if (typeof title !== "string" || title.trim() === "")
       throw new ValidationError("title must be a non-empty string");
@@ -46,6 +51,10 @@ export function parseNotePatch(input: unknown): { title?: string; body?: string 
     if (body.length > BODY_MAX)
       throw new ValidationError(`body is longer than ${BODY_MAX} characters`);
     patch.body = body;
+  }
+  if (pinned !== undefined) {
+    if (typeof pinned !== "boolean") throw new ValidationError("pinned must be a boolean");
+    patch.pinned = pinned;
   }
   return patch;
 }
@@ -72,7 +81,8 @@ export class NoteStore {
   constructor(now: () => Date = () => new Date(), persistence?: NotePersistence) {
     this.#now = now;
     if (persistence) {
-      for (const n of persistence.initial.notes) this.#notes.set(n.id, { ...n });
+      for (const n of persistence.initial.notes)
+        this.#notes.set(n.id, { ...n, pinned: n.pinned ?? false });
       this.#nextId = persistence.initial.nextId;
       this.#save = persistence.save;
     }
@@ -110,6 +120,7 @@ export class NoteStore {
       body,
       createdAt: this.#now().toISOString(),
       updatedAt: null,
+      pinned: false,
     };
     this.#persist(this.#nextId + 1, [...this.#notes.values(), note]);
     this.#notes.set(note.id, note);
@@ -122,7 +133,13 @@ export class NoteStore {
     const patch = parseNotePatch(input);
     const note = this.#notes.get(id);
     if (!note) return undefined;
-    const updated: Note = { ...note, ...patch, updatedAt: this.#now().toISOString() };
+    // Pinning is metadata: only an edit to title or body counts as "edited".
+    const edited = patch.title !== undefined || patch.body !== undefined;
+    const updated: Note = {
+      ...note,
+      ...patch,
+      updatedAt: edited ? this.#now().toISOString() : note.updatedAt,
+    };
     this.#persist(
       this.#nextId,
       [...this.#notes.values()].map((n) => (n.id === id ? updated : n)),

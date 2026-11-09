@@ -149,7 +149,10 @@ test("PATCH pinned over HTTP (AC 1-6, 10)", async () => {
     fetch(`${url}${path}`, { method, headers: { "content-type": "application/json" }, body });
   try {
     for (const t of ["a", "b"]) await send("POST", "", JSON.stringify({ title: t }));
-    assert.equal((await (await send("POST", "", JSON.stringify({ title: "c" }))).json()).pinned, false);
+    assert.equal(
+      (await (await send("POST", "", JSON.stringify({ title: "c" }))).json()).pinned,
+      false,
+    );
     assert.equal((await (await fetch(`${url}?q=a`)).json())[0].pinned, false);
 
     const pin = await send("PATCH", "/1", JSON.stringify({ pinned: true }));
@@ -160,7 +163,11 @@ test("PATCH pinned over HTTP (AC 1-6, 10)", async () => {
     const list = await (await fetch(url)).json();
     assert.deepEqual(
       list.map((n: { id: number; pinned: boolean }) => [n.id, n.pinned]),
-      [[1, true], [2, false], [3, false]],
+      [
+        [1, true],
+        [2, false],
+        [3, false],
+      ],
     );
     const unpin = await send("PATCH", "/1", JSON.stringify({ pinned: false }));
     assert.equal((await unpin.json()).pinned, false);
