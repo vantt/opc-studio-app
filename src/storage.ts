@@ -25,7 +25,7 @@ function checkShape(path: string, data: unknown): NoteSnapshot {
   const seen = new Set<number>();
   for (const n of notes as Record<string, unknown>[]) {
     if (typeof n !== "object" || n === null) throw fail("invalid note");
-    const { id, title, body, createdAt, updatedAt } = n;
+    const { id, title, body, createdAt, updatedAt, pinned } = n;
     if (!Number.isInteger(id) || (id as number) < 1) throw fail("invalid note id");
     if (seen.has(id as number)) throw fail(`duplicate note id ${id}`);
     if ((id as number) >= (nextId as number)) throw fail(`note id ${id} is not below nextId`);
@@ -33,6 +33,9 @@ function checkShape(path: string, data: unknown): NoteSnapshot {
     if (!isString(title) || !isString(body) || !isString(createdAt))
       throw fail(`invalid fields on note ${id}`);
     if (updatedAt !== null && !isString(updatedAt)) throw fail(`invalid updatedAt on note ${id}`);
+    if (pinned !== undefined && typeof pinned !== "boolean")
+      throw fail(`invalid pinned on note ${id}`);
+    n.pinned = pinned ?? false;
   }
   return data as NoteSnapshot;
 }
