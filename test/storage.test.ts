@@ -208,3 +208,55 @@ test("a failed saveSnapshot keeps the previous file intact", () => {
   assert.throws(() => saveSnapshot(path, circular));
   assert.equal(readFileSync(path, "utf8"), before);
 });
+
+test("pinned survives a restart (AC 7)", () => {
+  const path = tempFile();
+  const a = openStore(path);
+  a.add({ title: "one" });
+  a.update(1, { pinned: true });
+  assert.equal(openStore(path).list()[0]?.pinned, true);
+});
+
+test("a failed save leaves pinned unchanged (AC 7)", () => {
+  let failing = false;
+  const store = new NoteStore(at, {
+    initial: { version: 1, nextId: 1, notes: [] },
+    save: () => {
+      if (failing) throw new Error("disk full");
+    },
+  });
+  store.add({ title: "a" });
+  failing = true;
+  assert.throws(() => store.update(1, { pinned: true }), /disk full/);
+  assert.equal(store.list()[0]?.pinned, false);
+});
+
+test("an old file without pinned loads as unpinned and is not rewritten (AC 8)", () => {
+  const path = tempFile();
+  saveSnapshot(path, { version: 1, nextId: 1, notes: [] });
+  const content = JSON.stringify({
+    version: 1,
+    nextId: 2,
+    notes: [{ id: 1, title: "a", body: "", createdAt: "x", updatedAt: null }],
+  });
+  writeFileSync(path, content);
+  assert.equal(loadSnapshot(path).notes[0]?.pinned, false);
+  assert.equal(openStore(path).list()[0]?.pinned, false);
+  assert.equal(readFileSync(path, "utf8"), content);
+});
+
+test("a non-boolean pinned in the file throws StorageError naming path and id (AC 9)", () => {
+  const path = tempFile();
+  saveSnapshot(path, { version: 1, nextId: 1, notes: [] });
+  const content = JSON.stringify({
+    version: 1,
+    nextId: 8,
+    notes: [{ id: 7, title: "a", body: "", createdAt: "x", updatedAt: null, pinned: "yes" }],
+  });
+  writeFileSync(path, content);
+  assert.throws(
+    () => loadSnapshot(path),
+    (e) => e instanceof StorageError && e.message.includes(path) && e.message.includes("7"),
+  );
+  assert.equal(readFileSync(path, "utf8"), content);
+});

@@ -19,6 +19,7 @@ test("add trims the title and assigns increasing ids", () => {
     body: "",
     createdAt: "2026-10-30T00:00:00.000Z",
     updatedAt: null,
+    pinned: false,
   });
   assert.equal(b.id, 2);
   assert.equal(store.list().length, 2);
@@ -154,4 +155,54 @@ test("search sees edited text (AC 7)", () => {
   store.update(1, { title: "fresh", body: "text" });
   assert.deepEqual(store.list("fresh").length, 1);
   assert.deepEqual(store.list("old"), []);
+});
+
+test("new notes are unpinned (AC 1, D2)", () => {
+  const store = new NoteStore();
+  assert.equal(store.add({ title: "a" }).pinned, false);
+  assert.equal(store.add({ title: "b", pinned: true }).pinned, false);
+  assert.equal(store.list("a")[0]?.pinned, false);
+});
+
+test("pin and unpin keep updatedAt, title and body (AC 2, 3, 11)", () => {
+  let now = new Date("2026-10-30T00:00:00Z");
+  const store = new NoteStore(() => now);
+  store.add({ title: "a", body: "b" });
+  now = new Date("2026-10-31T00:00:00Z");
+  const pinned = store.update(1, { pinned: true });
+  assert.deepEqual([pinned?.pinned, pinned?.updatedAt, pinned?.title], [true, null, "a"]);
+  assert.equal(store.list()[0]?.pinned, true);
+  assert.equal(store.update(1, { pinned: false })?.pinned, false);
+  const both = store.update(1, { title: "c", pinned: true });
+  assert.deepEqual([both?.title, both?.pinned], ["c", true]);
+  assert.equal(both?.updatedAt, "2026-10-31T00:00:00.000Z");
+  assert.equal(store.update(1, { body: "z" })?.pinned, true);
+});
+
+test("parseNotePatch rejects a non-boolean pinned and an empty patch (AC 4, 5)", () => {
+  for (const pinned of ["yes", 1, null, 0, {}]) {
+    assert.throws(() => parseNotePatch({ pinned }), /pinned must be a boolean/);
+    assert.throws(() => parseNotePatch({ title: "a", pinned }), ValidationError);
+  }
+  assert.throws(() => parseNotePatch({}), /title, body or pinned is required/);
+  assert.deepEqual(parseNotePatch({ pinned: false }), { pinned: false });
+});
+
+test("pinning does not reorder the list (AC 10)", () => {
+  const store = new NoteStore();
+  for (const t of ["a", "b", "c"]) store.add({ title: t });
+  store.update(3, { pinned: true });
+  assert.deepEqual(
+    store.list().map((n) => n.id),
+    [1, 2, 3],
+  );
+});
+
+test("a snapshot note without pinned loads as unpinned (AC 8)", () => {
+  const old = { id: 1, title: "a", body: "", createdAt: "x", updatedAt: null };
+  const store = new NoteStore(undefined, {
+    initial: { version: 1, nextId: 2, notes: [old as never] },
+    save: () => {},
+  });
+  assert.equal(store.list()[0]?.pinned, false);
 });
