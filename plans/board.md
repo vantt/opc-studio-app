@@ -28,7 +28,7 @@ At most 1 step per plan.
 
 | ID | Step | Plan | Who | Condition |
 |---|---|---|---|---|
-| (none) | | | | |
+| E1 | P.2 Pinned first: list order and web pin toggle | [pinned-notes](261109-pinned-notes/plan.md) | agent | P.1 done (STU-17) |
 
 ### Next plans
 
@@ -45,7 +45,6 @@ The only section that holds steps waiting on the human.
 | ID | Step | Plan | What the human must do |
 |---|---|---|---|
 | E2 | B.1 Price | [paid-plan](261109-paid-plan/plan.md) | Pick the monthly price and write it into the plan |
-| E1 | P.1 Pin a note | [pinned-notes](261109-pinned-notes/plan.md) | Duyệt STU-17 (stored data shape change): kéo sang todo |
 | E3 | S.1 Email one-time-code sign-in | [sign-in](261109-sign-in/plan.md) | Duyệt STU-19 (auth, sessions, L): kéo sang todo |
 
 ## Backlog
