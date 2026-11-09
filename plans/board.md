@@ -4,7 +4,7 @@ This board is high-level: one row = one epic = one plan. Step status and evidenc
 
 **Context:** test bed for the OPC Studio coding team and its PM (Hà). Small, real epics so the board → issue → plan loop can be checked end to end.
 
-**Last updated:** 2026-11-09 (board created)
+**Last updated:** 2026-11-09 (board sync)
 
 ## Overview
 
@@ -28,7 +28,7 @@ At most 1 step per plan.
 
 | ID | Step | Plan | Who | Condition |
 |---|---|---|---|---|
-| E1 | P.1 Pin a note | [pinned-notes](261109-pinned-notes/plan.md) | Agent | — |
+| (none) | | | | |
 
 ### Next plans
 
@@ -37,7 +37,6 @@ At most 3 epics, in the order to open them.
 | # | Epic | Plan | Priority | First step | Who | Condition |
 |---|---|---|---|---|---|---|
 | 1 | E2 Paid plan | [paid-plan](261109-paid-plan/plan.md) | P2 | B.1 owner picks the price; B.2 checkout endpoint | B.1 human; B.2 agent | B.2 after B.1 |
-| 2 | E3 Sign-in | [sign-in](261109-sign-in/plan.md) | P2 | S.1 email one-time-code sign-in | Agent | — |
 
 ## Needs the human
 
@@ -46,6 +45,8 @@ The only section that holds steps waiting on the human.
 | ID | Step | Plan | What the human must do |
 |---|---|---|---|
 | E2 | B.1 Price | [paid-plan](261109-paid-plan/plan.md) | Pick the monthly price and write it into the plan |
+| E1 | P.1 Pin a note | [pinned-notes](261109-pinned-notes/plan.md) | Duyệt STU-17 (stored data shape change): kéo sang todo |
+| E3 | S.1 Email one-time-code sign-in | [sign-in](261109-sign-in/plan.md) | Duyệt STU-19 (auth, sessions, L): kéo sang todo |
 
 ## Backlog
 
