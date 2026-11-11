@@ -172,6 +172,17 @@ test("PATCH pinned over HTTP (AC 1-6, 10)", async () => {
     const unpin = await send("PATCH", "/1", JSON.stringify({ pinned: false }));
     assert.equal((await unpin.json()).pinned, false);
 
+    // STU-61 AC1, AC2, AC4: pinned first over HTTP, with and without ?q=
+    await send("PATCH", "/3", JSON.stringify({ pinned: true }));
+    const ids = async (q = "") =>
+      (await (await fetch(`${url}${q}`)).json()).map((n: { id: number }) => n.id);
+    assert.deepEqual(await ids(), [3, 1, 2]);
+    await send("PATCH", "/1", JSON.stringify({ title: "ab" }));
+    await send("PATCH", "/3", JSON.stringify({ title: "cb" }));
+    assert.deepEqual(await ids("?q=b"), [3, 1, 2]);
+    await send("PATCH", "/3", JSON.stringify({ pinned: false }));
+    assert.deepEqual(await ids(), [1, 2, 3]);
+
     await send("PATCH", "/2", JSON.stringify({ pinned: true }));
     for (const pinnedValue of ["yes", 1, null]) {
       const res = await send("PATCH", "/2", JSON.stringify({ pinned: pinnedValue }));
@@ -179,7 +190,7 @@ test("PATCH pinned over HTTP (AC 1-6, 10)", async () => {
       assert.equal(typeof (await res.json()).error, "string");
     }
     assert.equal((await send("PATCH", "/2", "{}")).status, 400);
-    assert.equal((await (await fetch(url)).json())[1].pinned, true);
+    assert.equal((await (await fetch(url)).json())[0].pinned, true);
     assert.equal((await send("PATCH", "/99", JSON.stringify({ pinned: true }))).status, 404);
   } finally {
     own.close();

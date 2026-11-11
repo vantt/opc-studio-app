@@ -69,7 +69,7 @@
           ...notes.map((note) => {
             const item = document.createElement("li");
             const title = document.createElement("strong");
-            title.textContent = note.title;
+            title.textContent = (note.pinned ? "📌 " : "") + note.title;
             const remove = document.createElement("button");
             remove.textContent = "Xoá";
             remove.addEventListener("click", async () => {
@@ -79,7 +79,25 @@
             const edit = document.createElement("button");
             edit.textContent = "Sửa";
             edit.addEventListener("click", () => item.replaceChildren(editForm(note)));
-            item.append(title, " ", note.body, " ", edit, " ", remove);
+            const pin = document.createElement("button");
+            pin.textContent = note.pinned ? "Bỏ ghim" : "Ghim";
+            pin.addEventListener("click", async () => {
+              try {
+                const res = await fetch(`/api/notes/${note.id}`, {
+                  method: "PATCH",
+                  headers: { "content-type": "application/json" },
+                  body: JSON.stringify({ pinned: !note.pinned }),
+                });
+                if (res.ok) {
+                  error.textContent = "";
+                  return refresh();
+                }
+                error.textContent = (await res.json()).error;
+              } catch {
+                error.textContent = "Không ghim được, thử lại sau";
+              }
+            });
+            item.append(title, " ", note.body, " ", pin, " ", edit, " ", remove);
             if (note.updatedAt) {
               const stamp = document.createElement("small");
               stamp.textContent = ` Sửa lần cuối: ${new Date(note.updatedAt).toLocaleString("vi-VN")}`;
