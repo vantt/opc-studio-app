@@ -188,13 +188,27 @@ test("parseNotePatch rejects a non-boolean pinned and an empty patch (AC 4, 5)",
   assert.deepEqual(parseNotePatch({ pinned: false }), { pinned: false });
 });
 
-test("pinning does not reorder the list (AC 10)", () => {
+test("list puts pinned notes first, keeping id order inside each group (STU-61 AC1, AC3, AC4)", () => {
   const store = new NoteStore();
-  for (const t of ["a", "b", "c"]) store.add({ title: t });
-  store.update(3, { pinned: true });
+  for (const t of ["a", "b", "c", "d"]) store.add({ title: t });
+  const ids = () => store.list().map((n) => n.id);
+  assert.deepEqual(ids(), [1, 2, 3, 4]);
+  store.update(2, { pinned: true });
+  store.update(4, { pinned: true });
+  assert.deepEqual(ids(), [2, 4, 1, 3]);
+  store.update(4, { pinned: false });
+  assert.deepEqual(ids(), [2, 1, 3, 4]);
+});
+
+test("list with a query keeps pinned first inside the matches (STU-61 AC2)", () => {
+  const store = new NoteStore();
+  for (const t of ["x1", "x2", "x3", "x4", "other"]) store.add({ title: t });
+  store.update(2, { pinned: true });
+  store.update(4, { pinned: true });
+  store.update(5, { pinned: true });
   assert.deepEqual(
-    store.list().map((n) => n.id),
-    [1, 2, 3],
+    store.list("x").map((n) => n.id),
+    [2, 4, 1, 3],
   );
 });
 
