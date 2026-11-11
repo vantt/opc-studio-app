@@ -102,14 +102,19 @@ export class NoteStore {
     this.#save?.(this.#snapshotWith(nextId, notes));
   }
 
-  /** Lists notes by id; a non-blank query keeps notes whose title or body contains it, ignoring case. */
+  /**
+   * Lists pinned notes first, then the rest; each group keeps id order. A non-blank query keeps
+   * notes whose title or body contains it, ignoring case.
+   */
   list(query?: string): Note[] {
     const all = [...this.#notes.values()];
     const needle = query?.trim().toLowerCase();
-    if (!needle) return all;
-    return all.filter(
-      (n) => n.title.toLowerCase().includes(needle) || n.body.toLowerCase().includes(needle),
-    );
+    const matches = needle
+      ? all.filter(
+          (n) => n.title.toLowerCase().includes(needle) || n.body.toLowerCase().includes(needle),
+        )
+      : all;
+    return [...matches.filter((n) => n.pinned), ...matches.filter((n) => !n.pinned)];
   }
 
   add(input: unknown): Note {
